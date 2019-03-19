@@ -8,6 +8,7 @@
 
 import UIKit
 import RealmSwift
+import ChameleonFramework
 
 class CategoryViewController: UITableViewController {
     
@@ -19,6 +20,8 @@ class CategoryViewController: UITableViewController {
     
     override func viewDidLoad() {
         super.viewDidLoad()
+        tableView.rowHeight = 80.0
+        tableView.separatorStyle = .none
         loadCategories()
     }
 
@@ -27,6 +30,8 @@ class CategoryViewController: UITableViewController {
     override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         let cell = tableView.dequeueReusableCell(withIdentifier: "CategoryCell", for: indexPath)
         cell.textLabel?.text = categories?[indexPath.row].name ?? "No Categories Added Yet"
+        cell.backgroundColor = HexColor(categories?[indexPath.row].color ?? "3498DB")
+        cell.textLabel?.textColor = ContrastColorOf(cell.backgroundColor ?? UIColor.white, returnFlat: true)
         return cell
     }
     
@@ -65,6 +70,7 @@ class CategoryViewController: UITableViewController {
             
             let newCategory = Category()
             newCategory.name = textfield.text!
+            newCategory.color = UIColor.randomFlat.hexValue()
             self.save(category: newCategory)
             
         }
@@ -92,6 +98,30 @@ class CategoryViewController: UITableViewController {
         if let indexPath = tableView.indexPathForSelectedRow {
             destinationVC.selectedCategory = categories?[indexPath.row]
         }
+    }
+    
+    override func tableView(_ tableView: UITableView, trailingSwipeActionsConfigurationForRowAt indexPath: IndexPath) -> UISwipeActionsConfiguration? {
+        
+        let deleteAction = UIContextualAction(style: .destructive, title: "Delete") { (action, view, handler) in
+            
+            if let category = self.categories?[indexPath.row] {
+                do {
+                    try self.realm.write {
+                        self.realm.delete(category.items)
+                        self.realm.delete(category)
+                    }
+                } catch {
+                    print("Error deleting a category, \(error)")
+                }
+                self.tableView.deleteRows(at: [indexPath], with: .automatic)
+                handler(true)
+            }
+        
+        }
+        
+        let swipeAction = UISwipeActionsConfiguration(actions: [deleteAction])
+        return swipeAction
+        
     }
     
 }
